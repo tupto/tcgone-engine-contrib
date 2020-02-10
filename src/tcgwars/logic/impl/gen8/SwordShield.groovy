@@ -1862,7 +1862,12 @@ public enum SwordShield implements CardInfo {
 					energyCost C, C
 					attackRequirement {}
 					onAttack {
-
+						targeted (opp.active) {
+							def tmp = opp.active.damage
+							opp.active.damage = self.damage
+							self.damage = tmp
+							checkFaint()
+						}
 					}
 				}
 				move "Shadow Bind", {
@@ -1871,6 +1876,7 @@ public enum SwordShield implements CardInfo {
 					attackRequirement {}
 					onAttack {
 						damage 70
+						cantRetreat defending
 					}
 				}
 			};
@@ -1957,6 +1963,9 @@ public enum SwordShield implements CardInfo {
 				bwAbility "Watch Over", {
 					text "Once during your turn, you may heal 20 damage from your Active Pokémon."
 					actionA {
+						checkLastTurn()
+						heal 20, my.active
+						powerUsed()
 					}
 				}
 				move "Psychic", {
@@ -1964,7 +1973,7 @@ public enum SwordShield implements CardInfo {
 					energyCost P, C, C
 					attackRequirement {}
 					onAttack {
-						damage 10
+						damage 10 + (60 * defending.cards.energyCount(C))
 					}
 				}
 			};
@@ -2192,7 +2201,7 @@ public enum SwordShield implements CardInfo {
 					energyCost F, C
 					attackRequirement {}
 					onAttack {
-						damage 30
+						damage 30 + (10 * self.numberOfDamageCounters)
 					}
 				}
 				move "Rocky Tackle", {
@@ -2201,6 +2210,7 @@ public enum SwordShield implements CardInfo {
 					attackRequirement {}
 					onAttack {
 						damage 190
+						damage 30, self
 					}
 				}
 			};
@@ -2370,6 +2380,7 @@ public enum SwordShield implements CardInfo {
 					attackRequirement {}
 					onAttack {
 						damage 40
+						reduceDamageNextTurn(hp(20),thisMove)
 					}
 				}
 				move "Mega Kick", {
@@ -2387,9 +2398,13 @@ public enum SwordShield implements CardInfo {
 				move "Stone Gift", {
 					text "Attach a [F] Energy card from your hand to 1 of your Pokémon. If you do, heal 120 damage from that Pokémon."
 					energyCost F
-					attackRequirement {}
+					attackRequirement {
+						assert my.hand
+					}
 					onAttack {
-
+						def selected my.all.select
+						attachEnergyFrom(type:F, my.hand, selected)
+						heal 120, selected
 					}
 				}
 				move "Max Rockfall", {
@@ -2461,9 +2476,11 @@ public enum SwordShield implements CardInfo {
 				move "Lode Search", {
 					text "Put a Trainer card from your discard pile into your hand."
 					energyCost D
-					attackRequirement {}
+					attackRequirement {
+						assert my.discard.find(cardTypeFilter(TRAINER))
+					}
 					onAttack {
-
+						my.discard.findAll(cardTypeFilter(TRAINER)).select().moveTo(my.hand)
 					}
 				}
 				move "Crazy Claws", {
@@ -2471,7 +2488,7 @@ public enum SwordShield implements CardInfo {
 					energyCost D, D
 					attackRequirement {}
 					onAttack {
-						damage 10
+						damage 10 + (60 * defending.numberOfDamageCounters)
 					}
 				}
 			};
@@ -3103,9 +3120,12 @@ public enum SwordShield implements CardInfo {
 				move "Beak Catch", {
 					text "Search your deck for up to 2 cards and put them into your hand. Then, shuffle your deck."
 					energyCost C
-					attackRequirement {}
+					attackRequirement {
+						assert my.deck
+					}
 					onAttack {
-
+						my.deck.select(max : 2, "Search your deck for up to 2 cards").moveTo(my.hand)
+						my.deck.shuffle()
 					}
 				}
 				move "Spit Shot", {
@@ -3113,7 +3133,8 @@ public enum SwordShield implements CardInfo {
 					energyCost C, C, C
 					attackRequirement {}
 					onAttack {
-
+						discardAllSelfEnergy(null)
+						damage 160, opp.all.select()
 					}
 				}
 			};
